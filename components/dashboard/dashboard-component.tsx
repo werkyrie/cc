@@ -58,6 +58,29 @@ export default function DashboardComponent() {
     monthlyWithdrawals: 0,
     monthlyOrders: 0,
   })
+  const [globalMonthFilter, setGlobalMonthFilter] = useState<string>("current")
+
+  // Get date range based on month filter
+  const getDateRangeFromFilter = (monthFilter: string) => {
+    const today = new Date()
+    let startDate, endDate
+
+    if (monthFilter === "current") {
+      startDate = startOfMonth(today)
+      endDate = today
+    } else if (monthFilter === "all") {
+      startDate = new Date(2000, 0, 1) // Far in the past
+      endDate = today
+    } else {
+      // Parse the month value (e.g., "1" for 1 month ago)
+      const monthsAgo = Number.parseInt(monthFilter)
+      const targetMonth = subMonths(today, monthsAgo)
+      startDate = startOfMonth(targetMonth)
+      endDate = endOfMonth(targetMonth)
+    }
+
+    return { startDate, endDate }
+  }
 
   useEffect(() => {
     // Simulate loading data
@@ -157,36 +180,40 @@ export default function DashboardComponent() {
   useEffect(() => {
     if (!clients || !orders || !deposits || !withdrawals) return
 
-    const today = new Date()
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+    const { startDate, endDate } = getDateRangeFromFilter(globalMonthFilter)
 
-    // Calculate monthly stats
-    const monthlyDeposits = deposits
-      .filter((d) => new Date(d.date) >= firstDayOfMonth)
-      .reduce((sum, d) => sum + d.amount, 0)
+    // Calculate filtered stats
+    const filteredDeposits = deposits.filter((d) => new Date(d.date) >= startDate && new Date(d.date) <= endDate)
 
-    const monthlyWithdrawals = withdrawals
-      .filter((w) => new Date(w.date) >= firstDayOfMonth)
-      .reduce((sum, w) => sum + w.amount, 0)
+    const filteredWithdrawals = withdrawals.filter((w) => new Date(w.date) >= startDate && new Date(w.date) <= endDate)
 
-    const monthlyOrders = orders.filter((o) => new Date(o.date) >= firstDayOfMonth).length
+    const filteredOrders = orders.filter((o) => new Date(o.date) >= startDate && new Date(o.date) <= endDate)
 
-    // Calculate total stats
+    // Calculate total stats (unfiltered)
     const totalDeposits = deposits.reduce((sum, d) => sum + d.amount, 0)
     const totalWithdrawals = withdrawals.reduce((sum, w) => sum + w.amount, 0)
     const activeClients = clients.filter((c) => c.status === "Active").length
     const inactiveClients = clients.filter((c) => c.status !== "Active").length
 
+    // Calculate filtered stats
+    const periodDeposits = filteredDeposits.reduce((sum, d) => sum + d.amount, 0)
+    const periodWithdrawals = filteredWithdrawals.reduce((sum, w) => sum + w.amount, 0)
+
+    // Initialize rejected before using it
+    const rejected = orderRequests ? orderRequests.filter((req) => req.status === "Rejected").length : 0
+
     setStats({
-      ...stats,
       totalDeposits,
       totalWithdrawals,
       totalOrders: orders.length,
       activeClients,
       inactiveClients,
-      monthlyDeposits,
-      monthlyWithdrawals,
-      monthlyOrders,
+      pendingRequests: stats.pendingRequests,
+      approvedRequests: stats.approvedRequests,
+      rejectedRequests: rejected,
+      monthlyDeposits: periodDeposits,
+      monthlyWithdrawals: periodWithdrawals,
+      monthlyOrders: filteredOrders.length,
     })
 
     const activeClientsList = clients.filter((client) => client.status === "Active")
@@ -201,7 +228,7 @@ export default function DashboardComponent() {
           clientOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
           const latestOrderDate = new Date(clientOrders[0].date)
-          const daysSinceLastOrder = differenceInDays(today, latestOrderDate)
+          const daysSinceLastOrder = differenceInDays(new Date(), latestOrderDate)
 
           return {
             ...client,
@@ -228,7 +255,7 @@ export default function DashboardComponent() {
           clientDeposits.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
           const latestDepositDate = new Date(clientDeposits[0].date)
-          const daysSinceLastDeposit = differenceInDays(today, latestDepositDate)
+          const daysSinceLastDeposit = differenceInDays(new Date(), latestDepositDate)
 
           return {
             ...client,
@@ -247,7 +274,7 @@ export default function DashboardComponent() {
 
     setInactiveOrderClients(orderInactiveClients)
     setInactiveDepositClients(depositInactiveClients)
-  }, [clients, orders, deposits, withdrawals])
+  }, [clients, orders, deposits, withdrawals, globalMonthFilter, orderRequests])
 
   if (isLoading) {
     return (
@@ -314,6 +341,33 @@ export default function DashboardComponent() {
       {/* Welcome Section */}
       <div className="mb-8">
         <WelcomeHero />
+      </div>
+
+      {/* Global Month Filter */}
+      <div className="mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <h3 className="text-base font-semibold flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Dashboard Time Period
+          </h3>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Select value={globalMonthFilter} onValueChange={setGlobalMonthFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="current">Current Month</SelectItem>
+                <SelectItem value="1">Last Month</SelectItem>
+                <SelectItem value="2">2 Months Ago</SelectItem>
+                <SelectItem value="3">3 Months Ago</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Showing data for: <span className="font-medium">{getMonthName(globalMonthFilter)}</span>
+        </p>
       </div>
 
       {/* Bento Grid Layout */}
@@ -550,6 +604,7 @@ export default function DashboardComponent() {
                       <SelectValue placeholder="Select period" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value={globalMonthFilter}>Same as Dashboard</SelectItem>
                       <SelectItem value="current">Current Month</SelectItem>
                       <SelectItem value="1">Last Month</SelectItem>
                       <SelectItem value="2">2 Months Ago</SelectItem>
@@ -558,7 +613,12 @@ export default function DashboardComponent() {
                     </SelectContent>
                   </Select>
                 </div>
-                <CardDescription>Agent performance for {getMonthName(selectedMonth)}</CardDescription>
+                <CardDescription>
+                  Agent performance for{" "}
+                  {selectedMonth === globalMonthFilter
+                    ? `Same as Dashboard (${getMonthName(globalMonthFilter)})`
+                    : getMonthName(selectedMonth)}
+                </CardDescription>
               </CardHeader>
               <CardContent className="pt-4">
                 {topAgents.length > 0 ? (
@@ -788,7 +848,7 @@ export default function DashboardComponent() {
               <CardHeader className="pb-2 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-slate-500" />
-                  Today
+                  {globalMonthFilter === "current" ? "Today" : getMonthName(globalMonthFilter)}
                 </CardTitle>
                 <CardDescription>{format(new Date(), "EEEE, MMMM d, yyyy")}</CardDescription>
               </CardHeader>

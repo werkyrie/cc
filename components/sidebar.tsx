@@ -135,6 +135,9 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     if (tab === "dashboard") {
       router.push("/")
       setActiveTab("dashboard")
+    } else if (tab === "addedclients") {
+      router.push("/addedclients")
+      setActiveTab("addedclients")
     } else {
       router.push(`/?tab=${tab}`)
       setActiveTab(tab)
@@ -289,6 +292,11 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           label: "Inventory",
           icon: <Database className="h-6 w-6" />,
         },
+        {
+          id: "addedclients",
+          label: "Added Clients",
+          icon: <Users className="h-6 w-6" />,
+        },
       ],
     },
     {
@@ -390,6 +398,12 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
             label: "Inventory",
             tab: "inventory",
             onClick: () => handleTabChange("inventory"),
+          },
+          {
+            icon: Users,
+            label: "Added Clients",
+            tab: "addedclients",
+            onClick: () => handleTabChange("addedclients"),
           },
         ],
       },
@@ -683,6 +697,9 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                                   {item.icon}
                                 </div>
                                 {item.badge && <span className="absolute -top-2 -right-2 z-10">{item.badge}</span>}
+                                {item.id === "addedclients" && (
+                                  <span className="absolute -top-2 -right-2 h-2.5 w-2.5 bg-green-500 rounded-full animate-pulse"></span>
+                                )}
                               </div>
                             </Button>
                           </TooltipTrigger>
@@ -690,7 +707,14 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                             side="right"
                             className="bg-primary text-primary-foreground font-medium px-3 py-1.5 text-sm"
                           >
-                            {item.label}
+                            <div className="flex items-center">
+                              {item.label}
+                              {item.id === "addedclients" && (
+                                <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-green-500 text-white rounded-md">
+                                  NEW
+                                </span>
+                              )}
+                            </div>
                           </TooltipContent>
                         </Tooltip>
                       ) : (
@@ -715,14 +739,21 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                             {item.icon}
                           </div>
                           <div className="ml-3 flex items-center justify-between w-full">
-                            <span
-                              className={cn(
-                                "text-sm font-medium",
-                                activeTab === item.id ? "" : "text-muted-foreground group-hover:text-foreground",
+                            <div className="flex items-center">
+                              <span
+                                className={cn(
+                                  "text-sm font-medium",
+                                  activeTab === item.id ? "" : "text-muted-foreground group-hover:text-foreground",
+                                )}
+                              >
+                                {item.label}
+                              </span>
+                              {item.id === "addedclients" && (
+                                <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-green-500 text-white rounded-md animate-pulse">
+                                  NEW
+                                </span>
                               )}
-                            >
-                              {item.label}
-                            </span>
+                            </div>
                             {item.badge && item.badge}
                           </div>
                         </Button>

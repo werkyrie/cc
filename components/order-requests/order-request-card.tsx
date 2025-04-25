@@ -107,17 +107,10 @@ export default function OrderRequestCard({ request }: OrderRequestCardProps) {
 
   // Handle copy information
   const handleCopyInformation = () => {
-    // Create a detailed message with order request information
-    const message = `
-🛍️ Order Request
-👤 Client: ${request.clientName}
-🏪 Shop ID: ${request.shopId}
-📍 Location: ${request.location}
-💰 Price: ${formatCurrency(request.price || 0)}
-📅 Date: ${formatDate(request.date)}
-🔄 Status: ${request.status}
-${request.remarks ? `💬 Remarks: ${request.remarks}` : ""}
-`.trim()
+    // Create a simplified message with order request information
+    const message = `Shop ID: ${request.shopId}
+Location: ${request.location}
+Price: ${formatCurrency(request.price || 0)}`
 
     // Copy to clipboard
     navigator.clipboard.writeText(message)

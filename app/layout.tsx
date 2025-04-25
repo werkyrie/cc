@@ -8,6 +8,7 @@ import { ClientProvider } from "@/context/client-context"
 import { NotificationProvider } from "@/context/notification-context"
 import { AuthProvider } from "@/context/auth-context"
 import { TeamProvider } from "@/context/team-context"
+import FloatingActionButton from "@/components/floating-action-button"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -38,6 +39,7 @@ export default function RootLayout({
               <TeamProvider>
                 <NotificationProvider>
                   {children}
+                  <FloatingActionButton />
                   <Toaster />
                 </NotificationProvider>
               </TeamProvider>
